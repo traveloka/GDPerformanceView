@@ -25,8 +25,18 @@
 #import <mach/mach.h>
 #import <QuartzCore/QuartzCore.h>
 
+#import <arpa/inet.h>
+#import <net/if.h>
+#import <ifaddrs.h>
+#import <net/if_dl.h>
+
 #import "GDMarginLabel.h"
 #import "GDWindowViewController.h"
+
+static NSString * const kDataCounterKeyWWANSent = @"WWAN_SENT";
+static NSString * const kDataCounterKeyWWANReceived = @"WWAN_RECEIVED";
+static NSString * const kDataCounterKeyWiFiSent = @"WIFI_SENT";
+static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
 
 @interface GDPerformanceView ()
 
@@ -257,6 +267,77 @@
     kern = vm_deallocate(mach_task_self(), (vm_offset_t)threadList, threadCount * sizeof(thread_t));
     
     return totalUsageOfCPU;
+}
+
+/**
+ Returns a dictionary that contains data usage (in/out) details for WiFi and WWAN.
+
+ @return NSDictionary with WiFi sent, WiFi received, WWAN sent, WWAN received, in bytes.
+ */
+- (NSDictionary *)dataUsage {
+    struct ifaddrs *addrs;
+    const struct ifaddrs *cursor;
+    
+    unsigned long long wifiSent = 0;
+    unsigned long long wifiReceived = 0;
+    unsigned long long wwanSent = 0;
+    unsigned long long wwanReceived = 0;
+    
+    if (getifaddrs(&addrs) == 0) {
+        cursor = addrs;
+        while (cursor != NULL) {
+            if (cursor->ifa_addr->sa_family == AF_LINK) {
+                NSString *name = [NSString stringWithFormat:@"%s", cursor->ifa_name];
+                const struct if_data *ifa_data = (struct if_data *)cursor->ifa_data;
+                
+                if (ifa_data == NULL) {
+                    cursor = cursor->ifa_next;
+                    continue;
+                }
+                
+                if ([name hasPrefix:@"en"]) {
+                    // detect en0 interface (WiFi)
+                    wifiSent += ifa_data->ifi_obytes;
+                    wifiReceived += ifa_data->ifi_ibytes;
+                }
+                else if ([name hasPrefix:@"pdp_ip"]) {
+                    // detect pdp_ip0 interface (mobile data)
+                    wwanSent += ifa_data->ifi_obytes;
+                    wwanReceived += ifa_data->ifi_ibytes;
+                }
+            }
+            
+            cursor = cursor->ifa_next;
+        }
+        
+        freeifaddrs(addrs);
+    }
+    
+    return @{
+             kDataCounterKeyWiFiSent:@(wifiSent),
+             kDataCounterKeyWiFiReceived:@(wifiReceived),
+             kDataCounterKeyWWANSent:@(wwanSent),
+             kDataCounterKeyWWANReceived:@(wwanReceived)
+             };
+}
+
+/**
+ Returns resident memory used by the app. If there's an error with task_info, the function will return -1.
+
+ @return Float containing the occupied resident memory in MB.
+ */
+- (CGFloat)residentMemoryInMB {
+    struct task_basic_info info;
+    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
+    kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size);
+    
+    if (kerr == KERN_SUCCESS) {
+        return ((CGFloat)info.resident_size / 1000000);
+    }
+    else {
+        NSLog(@"Error with task_info(): %s", mach_error_string(kerr));
+        return -1;
+    }
 }
 
 #pragma mark - Other Methods
