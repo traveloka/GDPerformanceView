@@ -217,6 +217,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     }
 }
 
+// TODO(david): Update this part.
 - (void)takeReadings {
     int fps = self.screenUpdatesCount;
     float cpu = [self cpuUsage];
@@ -270,7 +271,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
 }
 
 /**
- Returns a dictionary that contains data usage (in/out) details for WiFi and WWAN.
+ Returns a dictionary that contains data usage (in/out) details for WiFi and WWAN. Need to note that the data usage is persisted and stored even after the phone has been switched off. So, to make use of this data, it should be diffed against previous readings. In short, data usage will always increase.
 
  @return NSDictionary with WiFi sent, WiFi received, WWAN sent, WWAN received, in bytes.
  */
@@ -278,6 +279,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     struct ifaddrs *addrs;
     const struct ifaddrs *cursor;
     
+    // u_int32_t only holds 4 billion / around 4GB. Value higher than 4GB will throw overflow exception.
     unsigned long long wifiSent = 0;
     unsigned long long wifiReceived = 0;
     unsigned long long wwanSent = 0;
@@ -322,11 +324,11 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
 }
 
 /**
- Returns resident memory used by the app. If there's an error with task_info, the function will return -1.
+ Returns resident memory used by the app. If there's an error with task_info, the function will return -1. Note that resident memory is different with actual memory used (i.e. live bytes). Refer to https://stackoverflow.com/q/18624152
 
  @return Float containing the occupied resident memory in MB.
  */
-- (CGFloat)residentMemoryInMB {
+- (CGFloat)residentMemoryUsage {
     struct task_basic_info info;
     mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
     kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size);
@@ -351,6 +353,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     return frame;
 }
 
+// TODO(david): Update this part.
 - (void)reportFPS:(int)fpsValue CPU:(float)cpuValue {
     if (!self.performanceDelegate || ![self.performanceDelegate respondsToSelector:@selector(performanceMonitorDidReportFPS:CPU:)]) {
         return;
@@ -359,6 +362,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     [self.performanceDelegate performanceMonitorDidReportFPS:fpsValue CPU:cpuValue];
 }
 
+// TODO(david): Update this part.
 - (void)updateMonitoringLabelWithFPS:(int)fpsValue CPU:(float)cpuValue {
     NSString *monitoringString = [NSString stringWithFormat:@"FPS : %d CPU : %.1f%%%@", fpsValue, cpuValue, self.versionsString];
     
