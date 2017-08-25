@@ -56,7 +56,6 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
 
 @implementation GDPerformanceView
 
-#pragma mark -
 #pragma mark - Init Methods & Superclass Overriders
 
 - (instancetype)init {
@@ -185,6 +184,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     [self.monitoringTextLabel.layer setBorderWidth:1.0f];
     [self.monitoringTextLabel.layer setBorderColor:[[UIColor blackColor] CGColor]];
     [self.monitoringTextLabel.layer setCornerRadius:5.0f];
+    [self.monitoringTextLabel setAccessibilityIdentifier:@"GD.GDPerformanceView.label"];
     
     [self addSubview:self.monitoringTextLabel];
 }
@@ -221,12 +221,20 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
 - (void)takeReadings {
     int fps = self.screenUpdatesCount;
     float cpu = [self cpuUsage];
+    NSDictionary *dataUsage = [self dataUsage];
+    float residentMemoryUsage = [self residentMemoryUsage];
+    
+    NSMutableDictionary *reportData = [NSMutableDictionary new];
+    reportData[@"fps"] = @(fps);
+    reportData[@"cpu"] = [NSString stringWithFormat:@"%@%%", @(cpu)];
+    reportData[@"wifi_sent"] = dataUsage[kDataCounterKeyWiFiSent];
+    reportData[@"wifi_received"] = dataUsage[kDataCounterKeyWiFiReceived];
+    reportData[@"resident_memory"] = @(residentMemoryUsage);
     
     self.screenUpdatesCount = 0;
     self.screenUpdatesBeginTime = 0.0f;
     
-    [self reportFPS:fps CPU:cpu];
-    [self updateMonitoringLabelWithFPS:fps CPU:cpu];
+    [self updateMonitoringLabelWithDictionary:reportData];
 }
 
 - (float)cpuUsage {
@@ -267,7 +275,8 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     
     kern = vm_deallocate(mach_task_self(), (vm_offset_t)threadList, threadCount * sizeof(thread_t));
     
-    return totalUsageOfCPU;
+    // round to one decimal places.
+    return roundf(totalUsageOfCPU * 10) / 10;
 }
 
 /**
@@ -328,13 +337,15 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
 
  @return Float containing the occupied resident memory in MB.
  */
-- (CGFloat)residentMemoryUsage {
-    struct task_basic_info info;
+- (float)residentMemoryUsage {
+    struct mach_task_basic_info info;
+
     mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
     kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size);
     
     if (kerr == KERN_SUCCESS) {
-        return ((CGFloat)info.resident_size / 1000000);
+        float residentSize = (float)info.resident_size/1000000; // in MB
+        return roundf(residentSize * 10) / 10;
     }
     else {
         NSLog(@"Error with task_info(): %s", mach_error_string(kerr));
@@ -367,6 +378,19 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     NSString *monitoringString = [NSString stringWithFormat:@"FPS : %d CPU : %.1f%%%@", fpsValue, cpuValue, self.versionsString];
     
     [self.monitoringTextLabel setText:monitoringString];
+    [self layoutTextLabel];
+}
+
+- (void)updateMonitoringLabelWithDictionary:(nonnull NSDictionary *)reportDictionary {
+    NSMutableArray *reportComponents = [NSMutableArray new];
+    for (NSString *key in reportDictionary) {
+        id value = reportDictionary[key];
+        NSString *component = [NSString stringWithFormat:@"%@:%@", key, value];
+        [reportComponents addObject:component];
+    }
+    
+    NSString *monitoringString = [reportComponents componentsJoinedByString:@", "];
+    self.monitoringTextLabel.text = monitoringString;
     [self layoutTextLabel];
 }
 
