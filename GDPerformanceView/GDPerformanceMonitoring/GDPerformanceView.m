@@ -284,7 +284,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
 /**
  Returns a dictionary that contains data usage (in/out) details for WiFi and WWAN. Need to note that the data usage is persisted and stored even after the phone has been switched off. So, to make use of this data, it should be diffed against previous readings. In short, data usage will always increase.
 
- @return NSDictionary with WiFi sent, WiFi received, WWAN sent, WWAN received, in bytes.
+ @return NSDictionary with WiFi sent, WiFi received, WWAN sent, WWAN received, in KB.
  */
 - (NSDictionary *)dataUsage {
     struct ifaddrs *addrs;
@@ -327,10 +327,10 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     }
     
     return @{
-             kDataCounterKeyWiFiSent:@((float)wifiSent/1000000),
-             kDataCounterKeyWiFiReceived:@((float)wifiReceived/1000000),
-             kDataCounterKeyWWANSent:@((float)wwanSent/1000000),
-             kDataCounterKeyWWANReceived:@((float)wwanReceived/1000000)
+             kDataCounterKeyWiFiSent:@((float)wifiSent/1000),
+             kDataCounterKeyWiFiReceived:@((float)wifiReceived/1000),
+             kDataCounterKeyWWANSent:@((float)wwanSent/1000),
+             kDataCounterKeyWWANReceived:@((float)wwanReceived/1000)
              };
 }
 
