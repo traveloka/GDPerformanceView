@@ -217,7 +217,6 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     }
 }
 
-// TODO: (david) Update this part.
 - (void)takeReadings {
     int fps = self.screenUpdatesCount;
     float cpu = [self cpuUsage];
@@ -227,7 +226,8 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     float residentMemoryUsage = [self residentMemoryUsage];
     
     NSMutableDictionary *reportData = [NSMutableDictionary new];
-    reportData[@"fps"] = @(fps); // TODO: take out this part.
+    //    NOTE: This part is temporarily taken out.
+//    reportData[@"fps"] = @(fps);
     reportData[@"cpu"] = [NSString stringWithFormat:@"%.1f", cpu]; // percent
     reportData[@"wifi_sent"] = [NSString stringWithFormat:@"%.2f", wifiOut]; // in MB
     reportData[@"wifi_received"] = [NSString stringWithFormat:@"%.2f", wifiIn]; // in MB
@@ -366,7 +366,6 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     return frame;
 }
 
-// TODO: (david) Update this part.
 - (void)reportFPS:(int)fpsValue CPU:(float)cpuValue {
     if (!self.performanceDelegate || ![self.performanceDelegate respondsToSelector:@selector(performanceMonitorDidReportFPS:CPU:)]) {
         return;
@@ -375,7 +374,6 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     [self.performanceDelegate performanceMonitorDidReportFPS:fpsValue CPU:cpuValue];
 }
 
-// TODO: (david) Update this part.
 - (void)updateMonitoringLabelWithFPS:(int)fpsValue CPU:(float)cpuValue {
     NSString *monitoringString = [NSString stringWithFormat:@"FPS : %d CPU : %.1f%%%@", fpsValue, cpuValue, self.versionsString];
     
