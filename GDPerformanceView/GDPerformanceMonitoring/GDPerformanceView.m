@@ -217,19 +217,21 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     }
 }
 
-// TODO(david): Update this part.
+// TODO: (david) Update this part.
 - (void)takeReadings {
     int fps = self.screenUpdatesCount;
     float cpu = [self cpuUsage];
     NSDictionary *dataUsage = [self dataUsage];
+    float wifiIn = [dataUsage[kDataCounterKeyWiFiReceived] floatValue];
+    float wifiOut = [dataUsage[kDataCounterKeyWiFiSent] floatValue];
     float residentMemoryUsage = [self residentMemoryUsage];
     
     NSMutableDictionary *reportData = [NSMutableDictionary new];
-    reportData[@"fps"] = @(fps);
-    reportData[@"cpu"] = [NSString stringWithFormat:@"%@%%", @(cpu)];
-    reportData[@"wifi_sent"] = dataUsage[kDataCounterKeyWiFiSent];
-    reportData[@"wifi_received"] = dataUsage[kDataCounterKeyWiFiReceived];
-    reportData[@"resident_memory"] = @(residentMemoryUsage);
+    reportData[@"fps"] = @(fps); // TODO: take out this part.
+    reportData[@"cpu"] = [NSString stringWithFormat:@"%.1f", cpu]; // percent
+    reportData[@"wifi_sent"] = [NSString stringWithFormat:@"%.2f", wifiOut]; // in MB
+    reportData[@"wifi_received"] = [NSString stringWithFormat:@"%.2f", wifiIn]; // in MB
+    reportData[@"resident_memory"] = [NSString stringWithFormat:@"%.1f", residentMemoryUsage]; // in MB
     
     self.screenUpdatesCount = 0;
     self.screenUpdatesBeginTime = 0.0f;
@@ -276,7 +278,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     kern = vm_deallocate(mach_task_self(), (vm_offset_t)threadList, threadCount * sizeof(thread_t));
     
     // round to one decimal places.
-    return roundf(totalUsageOfCPU * 10) / 10;
+    return totalUsageOfCPU;
 }
 
 /**
@@ -325,10 +327,10 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     }
     
     return @{
-             kDataCounterKeyWiFiSent:@(wifiSent),
-             kDataCounterKeyWiFiReceived:@(wifiReceived),
-             kDataCounterKeyWWANSent:@(wwanSent),
-             kDataCounterKeyWWANReceived:@(wwanReceived)
+             kDataCounterKeyWiFiSent:@((float)wifiSent/1000000),
+             kDataCounterKeyWiFiReceived:@((float)wifiReceived/1000000),
+             kDataCounterKeyWWANSent:@((float)wwanSent/1000000),
+             kDataCounterKeyWWANReceived:@((float)wwanReceived/1000000)
              };
 }
 
@@ -345,7 +347,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     
     if (kerr == KERN_SUCCESS) {
         float residentSize = (float)info.resident_size/1000000; // in MB
-        return roundf(residentSize * 10) / 10;
+        return residentSize;
     }
     else {
         NSLog(@"Error with task_info(): %s", mach_error_string(kerr));
@@ -364,7 +366,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     return frame;
 }
 
-// TODO(david): Update this part.
+// TODO: (david) Update this part.
 - (void)reportFPS:(int)fpsValue CPU:(float)cpuValue {
     if (!self.performanceDelegate || ![self.performanceDelegate respondsToSelector:@selector(performanceMonitorDidReportFPS:CPU:)]) {
         return;
@@ -373,7 +375,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     [self.performanceDelegate performanceMonitorDidReportFPS:fpsValue CPU:cpuValue];
 }
 
-// TODO(david): Update this part.
+// TODO: (david) Update this part.
 - (void)updateMonitoringLabelWithFPS:(int)fpsValue CPU:(float)cpuValue {
     NSString *monitoringString = [NSString stringWithFormat:@"FPS : %d CPU : %.1f%%%@", fpsValue, cpuValue, self.versionsString];
     
@@ -425,7 +427,6 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     }
 }
 
-#pragma mark -
 #pragma mark - Setters & Getters
 
 - (void)setAppVersionHidden:(BOOL)appVersionHidden {
