@@ -218,7 +218,7 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
 }
 
 - (void)takeReadings {
-    int fps = self.screenUpdatesCount;
+//    int fps = self.screenUpdatesCount;
     float cpu = [self cpuUsage];
     NSDictionary *dataUsage = [self dataUsage];
     float wifiIn = [dataUsage[kDataCounterKeyWiFiReceived] floatValue];
@@ -232,6 +232,10 @@ static NSString * const kDataCounterKeyWiFiReceived = @"WIFI_RECEIVED";
     reportData[@"wifi_sent"] = [NSString stringWithFormat:@"%.2f", wifiOut]; // in MB
     reportData[@"wifi_received"] = [NSString stringWithFormat:@"%.2f", wifiIn]; // in MB
     reportData[@"resident_memory"] = [NSString stringWithFormat:@"%.1f", residentMemoryUsage]; // in MB
+    
+    // app version
+    NSString *applicationVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+    reportData[@"v"] = applicationVersion;
     
     self.screenUpdatesCount = 0;
     self.screenUpdatesBeginTime = 0.0f;
